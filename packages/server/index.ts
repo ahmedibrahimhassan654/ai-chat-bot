@@ -8,6 +8,10 @@ app.get("/", (req: Request, res: Response) => {
   res.send(process.env.groq_API_KEY );
 });
 
+app.get("/api/message", (req: Request, res: Response) => {
+  res.json({ message: "Hello from the server" });
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
