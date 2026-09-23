@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import './App.css';
 
 function App() {
@@ -10,7 +11,14 @@ function App() {
          .catch((error) => console.error('Error fetching message:', error));
    }, []);
 
-   return <p className="text-lg font-bold p-5">{message}</p>;
+   return (
+      <>
+         <div className="flex min-h-svh flex-col items-center justify-center py-10">
+            <p className="text-lg font-bold">{message}</p>
+            <Button className="placeholder-sky-500">Click me</Button>
+         </div>
+      </>
+   );
 }
 
 export default App;
