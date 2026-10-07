@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
+import z from 'zod';
 
 dotenv.config();
 
@@ -25,17 +26,34 @@ const conversations = new Map<
    string,
    Array<{ role: 'user' | 'assistant' | 'system'; content: string }>
 >();
-
+const chatRequestSchema = z.object({
+   prompt: z
+      .string()
+      .min(1, 'Prompt cannot be empty')
+      .max(2000, 'Prompt cannot exceed 2000 characters'),
+   conversationId: z.string().uuid(),
+});
 app.post('/api/chat', async (req: Request, res: Response) => {
    try {
       const { prompt, conversationId } = req.body;
+      const result = chatRequestSchema.safeParse({ prompt, conversationId });
 
-      if (!conversations.has(conversationId)) {
-         conversations.set(conversationId, []);
+      if (!result.success) {
+         res.status(400).json(result.error.format());
+         return;
       }
 
-      const history = conversations.get(conversationId)!;
-      history.push({ role: 'user', content: prompt });
+      const {
+         prompt: validatedPrompt,
+         conversationId: validatedConversationId,
+      } = result.data;
+
+      if (!conversations.has(validatedConversationId)) {
+         conversations.set(validatedConversationId, []);
+      }
+
+      const history = conversations.get(validatedConversationId)!;
+      history.push({ role: 'user', content: validatedPrompt });
 
       const response = await client.chat.completions.create({
          model: 'openai/gpt-oss-20b',
