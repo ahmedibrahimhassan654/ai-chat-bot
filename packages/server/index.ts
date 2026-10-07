@@ -26,7 +26,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       const { prompt } = req.body;
 
       const response = await client.responses.create({
-         model: 'llama-3.1-8b-instant', // Free fast model instead of "gpt-4o"         input: prompt,
+         model: 'openai/gpt-oss-20b', // Free fast model instead of "gpt-4o"
          input: prompt,
          temperature: 0.2,
          max_output_tokens: 200,
