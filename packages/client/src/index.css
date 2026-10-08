@@ -128,3 +128,89 @@
       @apply font-sans;
    }
 }
+
+@layer components {
+   .chat-markdown {
+      @apply text-sm leading-relaxed;
+   }
+   .chat-markdown > *:first-child {
+      margin-top: 0;
+   }
+   .chat-markdown > *:last-child {
+      margin-bottom: 0;
+   }
+   .chat-markdown p {
+      @apply my-1.5;
+   }
+   .chat-markdown strong {
+      @apply font-semibold text-foreground;
+   }
+   .chat-markdown em {
+      @apply italic;
+   }
+   .chat-markdown h1,
+   .chat-markdown h2,
+   .chat-markdown h3,
+   .chat-markdown h4 {
+      @apply mt-3 mb-1.5 font-semibold tracking-tight text-foreground;
+   }
+   .chat-markdown h1 {
+      @apply text-base;
+   }
+   .chat-markdown h2 {
+      @apply text-sm;
+   }
+   .chat-markdown h3,
+   .chat-markdown h4 {
+      @apply text-sm;
+   }
+   .chat-markdown ul,
+   .chat-markdown ol {
+      @apply my-1.5 space-y-1 pl-4;
+   }
+   .chat-markdown ul {
+      @apply list-disc;
+   }
+   .chat-markdown ol {
+      @apply list-decimal;
+   }
+   .chat-markdown li {
+      @apply pl-1;
+   }
+   .chat-markdown li::marker {
+      @apply text-violet-500;
+   }
+   .chat-markdown a {
+      @apply text-violet-500 underline underline-offset-2 hover:text-violet-400;
+   }
+   .chat-markdown code {
+      @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.8em];
+   }
+   .chat-markdown pre {
+      @apply my-2 overflow-x-auto rounded-lg bg-muted p-3;
+   }
+   .chat-markdown pre code {
+      @apply bg-transparent p-0;
+   }
+   .chat-markdown blockquote {
+      @apply my-2 border-l-2 border-violet-500/50 pl-3 text-muted-foreground italic;
+   }
+   .chat-markdown hr {
+      @apply my-3 border-border;
+   }
+   .chat-markdown .table-scroll {
+      @apply my-2 overflow-x-auto;
+   }
+   .chat-markdown table {
+      @apply w-full border-collapse text-xs;
+   }
+   .chat-markdown th {
+      @apply border border-border bg-muted/60 px-2 py-1.5 text-left font-semibold text-foreground;
+   }
+   .chat-markdown td {
+      @apply border border-border px-2 py-1.5 align-top;
+   }
+   .chat-markdown tbody tr:nth-child(even) {
+      @apply bg-muted/30;
+   }
+}

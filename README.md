@@ -15,9 +15,33 @@
   <strong>Multi-turn AI chat with server-side memory · Clean Architecture backend · Dependency Injection · Zod validation</strong>
 </p>
 
-A production-minded, full-stack AI chat application built with **React 19**, **Express 5**, **TypeScript (strict mode)**, and the **Groq inference API** (running `openai/gpt-oss-20b`). The backend is architected with **Clean Architecture principles** — a strict three-layer separation (Controller → Service → Repository) with dependency injection — and the frontend is a polished, accessible chat UI built with **Tailwind CSS v4** and **shadcn/ui**.
+A production-minded, full-stack AI chat application built with **React 19**, **Express 5**, **TypeScript (strict mode)**, and the **Groq inference API** (running `openai/gpt-oss-20b`). The bot acts as a **domain-scoped customer support agent for "WonderWorld", a fictional theme park** — answering questions about tickets, rides, dining, hotels and accessibility from an injected knowledge base, while politely refusing off-topic requests. The backend is architected with **Clean Architecture principles** — a strict three-layer separation (Controller → Service → Repository) plus an externalized prompt layer, all wired with dependency injection — and the frontend is a polished, accessible chat UI built with **Tailwind CSS v4** and **shadcn/ui**.
 
-> This project demonstrates more than "calling an AI API". It demonstrates **software engineering discipline**: separation of concerns, testable design, input validation at every boundary, type safety end-to-end, and professional developer tooling (monorepo, git hooks, formatting pipelines).
+> This project demonstrates more than "calling an AI API". It demonstrates **software engineering discipline**: separation of concerns, testable design, input validation at every boundary, type safety end-to-end, prompt/knowledge externalization, LLM guardrails, and professional developer tooling (monorepo, git hooks, formatting pipelines).
+
+---
+
+## 🎢 The Domain: WonderWorld Guest Assistant
+
+Rather than a generic chatbot that answers anything, this bot is **scoped to a single business domain** — exactly how real companies ship AI support agents.
+
+The model is grounded by a **system prompt assembled at runtime** from two externalized files:
+
+| File                     | Role                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| `prompts/chatbot.txt`    | The agent **persona + behavioral rules** (tone, scope, anti-hallucination guards)         |
+| `prompts/WonderWorld.md` | The **knowledge base** — pricing tables, park hours, rides, hotels, dining, accessibility |
+
+`prompts/index.ts` loads both and interpolates the knowledge base into the `{{parkInfo}}` placeholder, producing a single ~5,200-character system prompt. **No prompt text is hardcoded in application logic** — editing the park's prices or the agent's tone requires zero code changes.
+
+### Guardrails in action (verified against the live API)
+
+| Guest asks                                            | Bot behaviour                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| "How much is a general admission ticket?"             | ✅ Answers **$129** from the knowledge base, with cheerful tone           |
+| "and how much for seniors?"                           | ✅ Uses conversation memory to infer context → **$99, valid ID required** |
+| "What thrill rides for teenagers?"                    | ✅ Lists the 4 attractions for ages 10+ from the knowledge base           |
+| "Write me a Python function to reverse a linked list" | 🚫 Politely declines and redirects to WonderWorld topics                  |
 
 ---
 
@@ -25,22 +49,32 @@ A production-minded, full-stack AI chat application built with **React 19**, **E
 
 ### Chat Experience
 
-- 💬 **Multi-turn conversations with memory** — the server maintains per-conversation message history, so the AI remembers context across messages
+- 💬 **Multi-turn conversations with memory** — the server maintains per-conversation message history, so follow-ups like _"and for seniors?"_ work without repeating context
+- 📝 **Markdown rendering** — assistant replies render bold text, bullet lists and GFM **tables** (prices/hours) via `react-markdown` + `remark-gfm`
 - ⌨️ **Smart input** — `Enter` to send, `Shift+Enter` for a new line, auto-growing textarea
 - ⏳ **Real-time feedback** — animated typing indicator while the model is thinking
-- ✨ **Empty state with suggestion chips** — one click to start a conversation
+- ✨ **Empty state with domain-specific suggestion chips** — one click to ask about tickets, kids' rides, fireworks or hotels
 - 🔄 **"New chat" button** — generates a fresh conversation UUID and resets history
 - 🕐 **Message timestamps**, smooth entry animations, and auto-scroll to the latest message
 - 🌗 **Full dark/light mode support** via CSS custom properties (OKLCH color space)
 
+### AI / Prompt Engineering
+
+- 🧠 **Externalized prompt layer** — persona, rules and knowledge base live in `prompts/`, not in code
+- 🔧 **Template interpolation** — `{{parkInfo}}` placeholder, with a build-time guard that throws if the placeholder is missing
+- 🚫 **Domain guardrails** — the agent refuses off-topic requests and is instructed never to invent facts
+- 🎭 **Reasoning-model aware** — falls back to `message.reasoning` when a model returns no `content`
+- 🧵 **System prompt is injected per-request, never persisted** — stored history stays clean, so the prompt can be changed without migrating or corrupting existing conversations
+
 ### Engineering
 
 - 🏛️ **Clean Architecture backend** — Controllers, Services, and Repositories with strict Single Responsibility Principle
-- 💉 **Dependency Injection** — every layer depends on abstractions (interfaces), not concrete implementations
+- 💉 **Dependency Injection** — every layer depends on abstractions (interfaces), not concrete implementations; the system prompt is injected through the composition root
 - ✅ **Zod schema validation** — request bodies are validated and typed at the HTTP boundary
 - 🔒 **Defense in depth** — the repository layer independently validates UUID format, so bad data can never reach storage
+- 🛡️ **No secret leakage** — the API key is never exposed by any endpoint; `.env` is git-ignored
 - 📦 **Bun monorepo workspaces** — client and server share one lockfile and run with a single command
-- 🧰 **Professional tooling** — Husky pre-commit hooks, lint-staged, Prettier, ESLint, strict TypeScript
+- 🧰 **Professional tooling** — Husky pre-commit hooks, lint-staged, Prettier, ESLint (zero warnings), strict TypeScript
 
 ---
 
@@ -65,16 +99,21 @@ A production-minded, full-stack AI chat application built with **React 19**, **E
 │   routes.ts ──► ChatController ──► ChatService ──► Repository   │
 │   (routing &       (HTTP layer)     (business       (data       │
 │    DI wiring)       validation)      logic + AI)     access)    │
-│                                              │                  │
-│                                              ▼                  │
-│                                   Groq API (OpenAI SDK)         │
-│                                   model: openai/gpt-oss-20b     │
+│        │                                  │                     │
+│        │ injects                          ▼                     │
+│        ▼                        Groq API (OpenAI SDK)           │
+│   ┌──────────────────┐          model: openai/gpt-oss-20b       │
+│   │  prompts/        │                                          │
+│   │  chatbot.txt     │──► system prompt (persona + rules        │
+│   │  WonderWorld.md  │    + {{parkInfo}} knowledge base)        │
+│   │  index.ts        │                                          │
+│   └──────────────────┘                                          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Backend Layering (Clean Architecture)
 
-The backend follows a strict three-layer architecture. **Dependencies only point inward/downward** — each layer knows nothing about the layer above it.
+The backend follows a strict three-layer architecture. **Dependencies only point inward/downward** — each layer knows nothing about the layer above it. The prompt layer sits alongside as an injected configuration source.
 
 ```
 HTTP Request
@@ -97,11 +136,15 @@ HTTP Request
 │                                                          │
 │    • Orchestrates the chat flow                          │
 │    • Loads history from the repository                   │
+│    • Prepends the injected system prompt at call time    │
+│      (never persisted into history)                      │
 │    • Calls the Groq/OpenAI API                           │
 │    • Extracts the assistant message (content or          │
 │      reasoning fallback for reasoning models)            │
 │    • Persists the updated conversation                   │
 │    • ❌ Knows nothing about HTTP, req, or res            │
+│    • ❌ Does not import the prompts module — the prompt  │
+│      is injected, keeping the service fully testable     │
 └──────────────────────────────────────────────────────────┘
      │  getHistory() / saveHistory() / createConversation()
      ▼
@@ -116,19 +159,35 @@ HTTP Request
 │      same ConversationRepository interface               │
 │    • ❌ Knows nothing about AI or HTTP                   │
 └──────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────┐
+│ ⟡ PROMPT LAYER  (prompts/) — injected configuration      │
+│                                                          │
+│    • chatbot.txt   → persona + behavioural guardrails    │
+│    • WonderWorld.md → domain knowledge base              │
+│    • index.ts      → buildSystemPrompt(): loads both as  │
+│      raw text and interpolates {{parkInfo}}              │
+│    • Wired in routes.ts (composition root), passed to    │
+│      the service constructor as an option                │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Why This Architecture? (Design Decisions)
 
-| Decision                                                                               | Rationale                                                                                                                                                                                      |
-| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Interface-first design** (`ChatController`, `ChatService`, `ConversationRepository`) | Every layer depends on an abstraction. Swapping Groq for OpenAI, or the in-memory Map for Redis, requires changing **one file** and zero callers.                                              |
-| **Constructor-based Dependency Injection**                                             | Services receive their dependencies through the constructor — no hidden globals. This makes every class trivially unit-testable with mocks.                                                    |
-| **Composition root in `routes.ts`**                                                    | All wiring (repository → service → controller → router) happens in exactly one place. `index.ts` is pure application bootstrap.                                                                |
-| **Zod validation at the HTTP boundary**                                                | Invalid requests are rejected with `400` + a structured error format **before** any business logic runs. TypeScript infers types from the schema — validation and types can never drift apart. |
-| **UUID validation duplicated in the repository**                                       | Defense in depth. Even if a future caller forgets validation, corrupt keys can never enter the data store.                                                                                     |
-| **Defensive copy on `saveHistory`**                                                    | The repository owns its state. Callers cannot mutate stored conversation history through a leaked array reference — a classic bug source.                                                      |
-| **`getHistory()` returns `[]` instead of `undefined`**                                 | Eliminates null-checks in the service layer (null-object pattern), simplifying the happy path.                                                                                                 |
+| Decision                                                                               | Rationale                                                                                                                                                                                                                    |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Interface-first design** (`ChatController`, `ChatService`, `ConversationRepository`) | Every layer depends on an abstraction. Swapping Groq for OpenAI, or the in-memory Map for Redis, requires changing **one file** and zero callers.                                                                            |
+| **Constructor-based Dependency Injection**                                             | Services receive their dependencies through the constructor — no hidden globals. This makes every class trivially unit-testable with mocks.                                                                                  |
+| **Composition root in `routes.ts`**                                                    | All wiring (repository → service → controller → router) happens in exactly one place. `index.ts` is pure application bootstrap.                                                                                              |
+| **Zod validation at the HTTP boundary**                                                | Invalid requests are rejected with `400` + a structured error format **before** any business logic runs. TypeScript infers types from the schema — validation and types can never drift apart.                               |
+| **UUID validation duplicated in the repository**                                       | Defense in depth. Even if a future caller forgets validation, corrupt keys can never enter the data store.                                                                                                                   |
+| **Defensive copy on `saveHistory`**                                                    | The repository owns its state. Callers cannot mutate stored conversation history through a leaked array reference — a classic bug source.                                                                                    |
+| **`getHistory()` returns `[]` instead of `undefined`**                                 | Eliminates null-checks in the service layer (null-object pattern), simplifying the happy path.                                                                                                                               |
+| **Prompts externalized into `prompts/` files**                                         | Persona, rules and the knowledge base are plain text/markdown, editable by non-engineers (product, support, marketing) without touching TypeScript. No redeploy of logic needed to change a price.                           |
+| **System prompt injected via constructor options**                                     | The service never imports the prompt module, so unit tests can inject a stub prompt. Swapping the whole domain (e.g. a hotel agent instead of a theme park) is a one-line wiring change in `routes.ts`.                      |
+| **System prompt prepended per-request, never stored**                                  | Persisting it would duplicate ~5KB in every conversation turn, inflating token cost and making stored history dependent on a prompt version. Injecting at call time keeps history clean and the prompt instantly upgradable. |
+| **Raw-text imports (`with { type: 'text' }`) instead of `fs.readFileSync`**            | Avoids the `__dirname`-in-ESM crash, removes runtime file I/O and path resolution, and makes missing prompt files a **compile/bundle-time** error rather than a runtime surprise.                                            |
+| **`buildSystemPrompt()` throws if `{{parkInfo}}` is missing**                          | Fail-fast contract check — a typo in the template breaks the build loudly instead of silently shipping a bot with no knowledge base.                                                                                         |
 
 ---
 
@@ -152,6 +211,11 @@ ai-chat-bot/
     │   │   └── chat.service.ts       # Business logic: Groq API orchestration
     │   ├── repositories/
     │   │   └── conversation.repository.ts  # Data access: in-memory store + UUID guard
+    │   ├── prompts/                  # ─── Prompt / knowledge layer ───
+    │   │   ├── index.ts              # buildSystemPrompt(): template + knowledge merge
+    │   │   ├── chatbot.txt           # Agent persona & behavioural guardrails
+    │   │   ├── WonderWorld.md        # Domain knowledge base (prices, rides, hours…)
+    │   │   └── assets.d.ts           # Ambient types for *.txt / *.md raw-text imports
     │   ├── .env.example              # Required environment variables template
     │   └── package.json
     │
@@ -159,9 +223,9 @@ ai-chat-bot/
         ├── src/
         │   ├── App.tsx               # Root layout
         │   ├── main.tsx              # React entry point
-        │   ├── index.css             # Design tokens (OKLCH), dark mode, fonts
+        │   ├── index.css             # Design tokens (OKLCH), dark mode, markdown styles
         │   ├── components/
-        │   │   ├── ChatBot.tsx       # The full chat experience (~350 lines)
+        │   │   ├── ChatBot.tsx       # The full chat experience (~320 lines)
         │   │   └── ui/               # shadcn/ui primitives (Button, Textarea)
         │   └── lib/
         │       └── utils.ts          # cn() classname helper
@@ -256,10 +320,10 @@ Sends a message and receives an AI response. Conversation history is maintained 
 
 ### Other Endpoints
 
-| Method | Path           | Description                                                          |
-| ------ | -------------- | -------------------------------------------------------------------- |
-| `GET`  | `/`            | Server health / key echo                                             |
-| `GET`  | `/api/message` | Simple connectivity check → `{ "message": "Hello from the server" }` |
+| Method | Path           | Description                                                                  |
+| ------ | -------------- | ---------------------------------------------------------------------------- |
+| `GET`  | `/`            | Health check → `{ status, service, configured }` (never exposes the API key) |
+| `GET`  | `/api/message` | Simple connectivity check → `{ "message": "Hello from the server" }`         |
 
 ### cURL Example
 
@@ -283,16 +347,74 @@ Follow one message through the entire system:
 3. **Vite proxy** forwards the request to the Express server on port 3000.
 4. **`routes.ts`** matches `POST /chat` on the `/api` router and invokes `ChatController.handleChat`.
 5. **Controller** validates the body against the Zod schema. Invalid → immediate `400` with field-level errors. Valid → calls `chatService.sendMessage(prompt, conversationId)`.
-6. **Service** asks the **repository** to `createConversation` (idempotent) and `getHistory`, appends the user message, and calls the Groq API with the full message history, `temperature: 0.2`, `max_tokens: 2000`.
-7. **Service** extracts the assistant text (`message.content`, falling back to `message.reasoning` for reasoning models), appends it to history, and persists via `saveHistory`.
-8. **Repository** stores a **defensive copy** of the messages in its in-memory `Map`.
-9. **Controller** responds `200` with `{ message }`; the client hides the indicator, appends the assistant bubble with an entry animation, and auto-scrolls.
+6. **Service** asks the **repository** to `createConversation` (idempotent) and `getHistory`, then appends the user message.
+7. **Service** prepends the **injected WonderWorld system prompt** (persona + guardrails + `{{parkInfo}}` knowledge base) to the message array — _for this request only_, it is **not** written to history — and calls the Groq API with `temperature: 0.2`, `max_tokens: 2000`.
+8. **Service** extracts the assistant text (`message.content`, falling back to `message.reasoning` for reasoning models), appends it to the _prompt-free_ history, and persists via `saveHistory`.
+9. **Repository** stores a **defensive copy** of the messages in its in-memory `Map`.
+10.   **Controller** responds `200` with `{ message }`; the client hides the indicator, renders the reply as **Markdown** (bold, lists, tables), appends the bubble with an entry animation, and auto-scrolls.
 
 Errors at any stage are caught by the controller's `try/catch` and translated into a clean `500` response with an error banner in the UI — the app never crashes or leaks stack traces to the client.
 
 ---
 
 ## 🧠 Key Implementation Highlights
+
+### Externalized Prompt Assembly (the `prompts/` layer)
+
+```ts
+// prompts/index.ts
+import chatbotTemplate from './chatbot.txt' with { type: 'text' };
+import parkInfo from './WonderWorld.md' with { type: 'text' };
+
+export const PARK_INFO_PLACEHOLDER = '{{parkInfo}}';
+
+export function buildSystemPrompt(): string {
+   if (!chatbotTemplate.includes(PARK_INFO_PLACEHOLDER)) {
+      throw new Error(
+         `Prompt template is missing the "${PARK_INFO_PLACEHOLDER}" placeholder`
+      );
+   }
+   return chatbotTemplate.replaceAll(PARK_INFO_PLACEHOLDER, parkInfo.trim());
+}
+```
+
+Two details worth calling out:
+
+- **`with { type: 'text' }`** forces Bun's _raw text_ loader. Without it, Bun silently compiles `.md` imports into **HTML**, which would mangle the markdown tables the model is asked to quote. This was found by testing, not by assuming.
+- **The fail-fast placeholder check** means a typo in the template breaks startup loudly instead of shipping a bot with an empty knowledge base.
+
+The assembled prompt is injected at the composition root — the service stays completely unaware of where prompts come from:
+
+```ts
+// routes.ts (composition root)
+const chatService = new GroqChatService(
+   process.env.GROQ_API_KEY!,
+   conversationRepository,
+   {
+      systemPrompt: buildSystemPrompt(),
+   }
+);
+```
+
+### Injected System Prompt, Clean Stored History
+
+```ts
+// services/chat.service.ts
+const messages: Message[] = [...history, { role: 'user', content: prompt }];
+
+const requestMessages: Message[] = this.systemPrompt
+   ? [{ role: 'system', content: this.systemPrompt }, ...messages]
+   : messages;
+
+// API call uses requestMessages…
+// …but only `messages` (system-prompt-free) is persisted:
+this.repository.saveHistory(conversationId, [
+   ...messages,
+   { role: 'assistant', content: assistantMessage },
+]);
+```
+
+Storing the system prompt would duplicate ~5KB **on every turn** — inflating token cost and permanently baking one prompt version into saved conversations. Separating "what we send" from "what we store" avoids both.
 
 ### Type-Safe Validation (Zod + TypeScript inference)
 
@@ -325,11 +447,13 @@ Groq's `gpt-oss-20b` is a reasoning model that may return content in `message.co
 
 ### UI Polish Details
 
+- **Styled Markdown pipeline** — a dedicated `.chat-markdown` component layer styles headings, lists, blockquotes, inline code and **striped, scrollable GFM tables** so price/hour tables render cleanly inside chat bubbles
 - **Dotted background pattern** generated with a CSS `radial-gradient` (no image assets)
 - **Bouncing typing indicator** using staggered `animation-delay` utilities
 - **Message animations** via `tw-animate-css` (`fade-in slide-in-from-bottom`)
 - **OKLCH design tokens** — perceptually uniform colors that adapt to light/dark themes automatically
 - **Accessible states** — disabled inputs during loading, focus rings, semantic buttons
+- **User vs. assistant styling** — user text stays literal (`whitespace-pre-wrap`), only assistant output is parsed as Markdown, avoiding accidental formatting of what a guest typed
 
 ---
 
@@ -337,25 +461,27 @@ Groq's `gpt-oss-20b` is a reasoning model that may return content in `message.co
 
 ### Frontend
 
-| Technology                | Purpose                                                      |
-| ------------------------- | ------------------------------------------------------------ |
-| **React 19**              | UI library (latest concurrent features)                      |
-| **TypeScript 6 (strict)** | End-to-end type safety                                       |
-| **Vite 8**                | Dev server, HMR, `/api` proxy, production builds             |
-| **Tailwind CSS v4**       | Utility-first styling with the new CSS-first `@theme` config |
-| **shadcn/ui + Base UI**   | Accessible, composable component primitives                  |
-| **lucide-react**          | Icon system                                                  |
-| **tw-animate-css**        | Declarative entry animations                                 |
+| Technology                      | Purpose                                                         |
+| ------------------------------- | --------------------------------------------------------------- |
+| **React 19**                    | UI library (latest concurrent features)                         |
+| **TypeScript 6 (strict)**       | End-to-end type safety                                          |
+| **Vite 8**                      | Dev server, HMR, `/api` proxy, production builds                |
+| **Tailwind CSS v4**             | Utility-first styling with the new CSS-first `@theme` config    |
+| **shadcn/ui + Base UI**         | Accessible, composable component primitives                     |
+| **lucide-react**                | Icon system                                                     |
+| **react-markdown + remark-gfm** | Renders assistant replies (bold, lists, GFM price/hours tables) |
+| **tw-animate-css**              | Declarative entry animations                                    |
 
 ### Backend
 
-| Technology                | Purpose                                                      |
-| ------------------------- | ------------------------------------------------------------ |
-| **Bun**                   | Runtime — fast startup, native TS execution                  |
-| **Express 5**             | HTTP framework (async error handling built in)               |
-| **Zod 4**                 | Schema validation & type inference                           |
-| **OpenAI SDK → Groq API** | LLM inference (`openai/gpt-oss-20b`, ~fast token throughput) |
-| **dotenv**                | Environment configuration                                    |
+| Technology                | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| **Bun**                   | Runtime — fast startup, native TS execution, raw-text imports |
+| **Express 5**             | HTTP framework (async error handling built in)                |
+| **Zod 4**                 | Schema validation & type inference                            |
+| **OpenAI SDK → Groq API** | LLM inference (`openai/gpt-oss-20b`, ~fast token throughput)  |
+| **dotenv**                | Environment configuration                                     |
+| **`prompts/` layer**      | Externalized persona, guardrails & domain knowledge base      |
 
 ### Tooling & Quality
 
@@ -400,12 +526,15 @@ bun run preview    # Preview the production build
 
 Ideas I plan to explore next (contributions welcome!):
 
+- [x] **Markdown rendering** for assistant messages (tables, lists, bold) — done
+- [x] **Externalized prompt/knowledge layer** with domain guardrails — done
 - [ ] **Streaming responses** (SSE) for token-by-token output
+- [ ] **RAG upgrade** — replace the whole-knowledge-base prompt with embeddings + vector search over `WonderWorld.md`, so the park guide can scale to thousands of pages
 - [ ] **Persistent storage** — implement a Redis `ConversationRepository` (the interface is already designed for it)
-- [ ] **Unit & integration tests** (Vitest + Supertest) — the DI architecture makes services trivially mockable
+- [ ] **Unit & integration tests** (Vitest + Supertest) — the DI architecture makes services and prompts trivially mockable
+- [ ] **Prompt regression tests** — assert guardrail behaviour ("refuses off-topic", "quotes exact prices") on every prompt edit
 - [ ] **Rate limiting & API key auth** on the chat endpoint
 - [ ] **Docker Compose** for one-command deployment
-- [ ] **Markdown + syntax highlighting** rendering for assistant messages
 
 ---
 

@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
    AlertCircle,
    Bot,
+   Castle,
    Loader2,
    Plus,
    Send,
    Sparkles,
+   Ticket,
    User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,10 +27,10 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
-   'Explain quantum computing simply',
-   'Write a haiku about the ocean',
-   'Help me plan a 3-day trip to Tokyo',
-   'Give me 5 startup ideas for AI',
+   { icon: Ticket, label: 'How much are tickets?' },
+   { icon: Castle, label: 'Best rides for a 5-year-old?' },
+   { icon: Sparkles, label: 'What time are the fireworks?' },
+   { icon: Bot, label: 'Tell me about the hotel options' },
 ];
 
 const ChatBot = () => {
@@ -128,28 +132,28 @@ const ChatBot = () => {
 
    return (
       <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl shadow-black/10">
-         <header className="relative flex items-center gap-3 border-b border-border/60 bg-linear-to-r from-primary/10 via-card to-card px-5 py-4">
+         <header className="relative flex items-center gap-3 border-b border-border/60 bg-linear-to-r from-violet-500/10 via-card to-card px-5 py-4">
             <div className="relative">
-               <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                  <Bot className="size-5" />
+               <div className="flex size-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25">
+                  <Castle className="size-5" />
                </div>
                <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border-2 border-card bg-emerald-500" />
             </div>
 
             <div className="min-w-0 flex-1">
                <h1 className="truncate text-sm font-semibold tracking-tight">
-                  AI Assistant
+                  WonderWorld Guest Assistant
                </h1>
                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {isLoading ? (
                      <>
                         <Loader2 className="size-3 animate-spin" />
-                        Thinking…
+                        Checking the park guide…
                      </>
                   ) : (
                      <>
                         <Sparkles className="size-3" />
-                        Online · gpt-oss-20b
+                        Online · Tickets, rides, dining & more
                      </>
                   )}
                </p>
@@ -177,25 +181,27 @@ const ChatBot = () => {
          >
             {isEmpty && (
                <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
-                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/15 to-primary/5 ring-1 ring-border">
-                     <Sparkles className="size-7 text-primary" />
+                  <div className="flex size-16 items-center justify-center rounded-2xl bg-linear-to-br from-violet-500/20 to-fuchsia-500/5 ring-1 ring-border">
+                     <Castle className="size-7 text-violet-500" />
                   </div>
                   <div className="space-y-1.5">
                      <h2 className="text-lg font-semibold tracking-tight">
-                        How can I help you today?
+                        Welcome to WonderWorld! 🏰
                      </h2>
                      <p className="max-w-sm text-sm text-muted-foreground">
-                        Ask me anything — I remember the whole conversation.
+                        Ask me about tickets, rides, dining, shows, hotels or
+                        accessibility — I remember the whole conversation.
                      </p>
                   </div>
                   <div className="grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
-                     {SUGGESTIONS.map((s) => (
+                     {SUGGESTIONS.map(({ icon: Icon, label }) => (
                         <button
-                           key={s}
-                           onClick={() => void sendMessage(s)}
-                           className="cursor-pointer rounded-xl border border-border/70 bg-card/80 px-3.5 py-2.5 text-left text-xs text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:text-foreground hover:shadow-md"
+                           key={label}
+                           onClick={() => void sendMessage(label)}
+                           className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/70 bg-card/80 px-3.5 py-2.5 text-left text-xs text-muted-foreground transition-all hover:-translate-y-0.5 hover:border-violet-500/40 hover:bg-accent hover:text-foreground hover:shadow-md"
                         >
-                           {s}
+                           <Icon className="size-3.5 shrink-0 text-violet-500" />
+                           {label}
                         </button>
                      ))}
                   </div>
@@ -215,13 +221,13 @@ const ChatBot = () => {
                         'flex size-8 shrink-0 items-center justify-center rounded-lg shadow-sm',
                         m.role === 'user'
                            ? 'bg-primary text-primary-foreground'
-                           : 'bg-secondary text-secondary-foreground ring-1 ring-border'
+                           : 'bg-linear-to-br from-violet-500 to-fuchsia-500 text-white'
                      )}
                   >
                      {m.role === 'user' ? (
                         <User className="size-4" />
                      ) : (
-                        <Bot className="size-4" />
+                        <Castle className="size-4" />
                      )}
                   </div>
 
@@ -233,13 +239,19 @@ const ChatBot = () => {
                   >
                      <div
                         className={cn(
-                           'rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm',
+                           'rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm',
                            m.role === 'user'
-                              ? 'rounded-tr-sm bg-primary text-primary-foreground'
-                              : 'rounded-tl-sm border border-border/60 bg-card text-card-foreground'
+                              ? 'rounded-tr-sm bg-primary text-primary-foreground whitespace-pre-wrap'
+                              : 'chat-markdown rounded-tl-sm border border-border/60 bg-card text-card-foreground'
                         )}
                      >
-                        {m.content}
+                        {m.role === 'user' ? (
+                           m.content
+                        ) : (
+                           <Markdown remarkPlugins={[remarkGfm]}>
+                              {m.content}
+                           </Markdown>
+                        )}
                      </div>
                      <span className="px-1 text-[10px] text-muted-foreground">
                         {formatTime(m.timestamp)}
@@ -250,8 +262,8 @@ const ChatBot = () => {
 
             {isLoading && (
                <div className="flex animate-in fade-in gap-3 duration-300">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground ring-1 ring-border">
-                     <Bot className="size-4" />
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-violet-500 to-fuchsia-500 text-white">
+                     <Castle className="size-4" />
                   </div>
                   <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3.5 shadow-sm">
                      <span className="size-2 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-0.3s]" />
@@ -276,7 +288,7 @@ const ChatBot = () => {
                   value={input}
                   onChange={handleInput}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type your message…  (Enter to send, Shift+Enter for new line)"
+                  placeholder="Ask about tickets, rides, hours, dining…  (Enter to send, Shift+Enter for new line)"
                   rows={1}
                   disabled={isLoading}
                   className="max-h-40 min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
@@ -285,7 +297,7 @@ const ChatBot = () => {
                   size="icon"
                   onClick={() => void sendMessage(input)}
                   disabled={isLoading || !input.trim()}
-                  className="size-9 shrink-0 rounded-lg shadow-lg shadow-primary/25 transition-transform enabled:hover:scale-105 enabled:active:scale-95"
+                  className="size-9 shrink-0 rounded-lg bg-linear-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25 transition-transform enabled:hover:scale-105 enabled:active:scale-95"
                >
                   {isLoading ? (
                      <Loader2 className="size-4 animate-spin" />
@@ -295,7 +307,8 @@ const ChatBot = () => {
                </Button>
             </div>
             <p className="mt-2 px-1 text-center text-[10px] text-muted-foreground">
-               AI can make mistakes. Verify important information.
+               WonderWorld Guest Assistant · AI can make mistakes — verify
+               prices and hours before your visit.
             </p>
          </footer>
       </div>
