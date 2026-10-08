@@ -11,7 +11,7 @@ export function createApiRouter(): Router {
    const chatService = new GroqChatService(
       process.env.GROQ_API_KEY!,
       conversationRepository,
-      { systemPrompt: buildSystemPrompt() }
+      { systemPrompt: buildSystemPrompt(), maxTokens: 4000 }
    );
    const chatController = new HttpChatController(chatService);
 
