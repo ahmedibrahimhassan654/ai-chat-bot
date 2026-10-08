@@ -1,5 +1,20 @@
 # 🤖 AI Chat Bot — Full-Stack Conversational AI Application
 
+<p align="center">
+  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Express" src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white" />
+  <img alt="Bun" src="https://img.shields.io/badge/Bun-1.4-000000?logo=bun&logoColor=white" />
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-v4-38BDF8?logo=tailwindcss&logoColor=white" />
+  <img alt="shadcn/ui" src="https://img.shields.io/badge/shadcn%2Fui-latest-000000?logo=shadcnui&logoColor=white" />
+  <img alt="Groq" src="https://img.shields.io/badge/Groq-gpt--oss--20b-F55036?logo=groq&logoColor=white" />
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Clean_%7C_3--Layer-success" />
+</p>
+
+<p align="center">
+  <strong>Multi-turn AI chat with server-side memory · Clean Architecture backend · Dependency Injection · Zod validation</strong>
+</p>
+
 A production-minded, full-stack AI chat application built with **React 19**, **Express 5**, **TypeScript (strict mode)**, and the **Groq inference API** (running `openai/gpt-oss-20b`). The backend is architected with **Clean Architecture principles** — a strict three-layer separation (Controller → Service → Repository) with dependency injection — and the frontend is a polished, accessible chat UI built with **Tailwind CSS v4** and **shadcn/ui**.
 
 > This project demonstrates more than "calling an AI API". It demonstrates **software engineering discipline**: separation of concerns, testable design, input validation at every boundary, type safety end-to-end, and professional developer tooling (monorepo, git hooks, formatting pipelines).
@@ -120,7 +135,7 @@ HTTP Request
 ## 📁 Project Structure
 
 ```
-chat-boot/
+ai-chat-bot/
 ├── index.ts                          # Monorepo dev orchestrator (concurrently)
 ├── package.json                      # Workspace root — scripts, husky, prettier
 ├── tsconfig.json                     # Root TypeScript config (strict)
@@ -169,8 +184,8 @@ chat-boot/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/chat-boot.git
-cd chat-boot
+git clone https://github.com/ahmedibrahimhassan654/ai-chat-bot.git
+cd ai-chat-bot
 
 # 2. Install all workspace dependencies (client + server)
 bun install
@@ -401,6 +416,6 @@ MIT — free to use, modify, and learn from.
 ---
 
 <p align="center">
-  Built with ❤️ and ☕ by <strong>&lt;Ahmed Ibrahim&gt;</strong><br/>
+  Built with ❤️ and ☕ by <strong>Ahmed Ibrahim</strong><br/>
   <em>If this project impressed you, let's talk — my inbox is open.</em>
 </p>
