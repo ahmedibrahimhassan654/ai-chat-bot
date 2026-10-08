@@ -4,6 +4,8 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
    AlertCircle,
+   AudioLines,
+   AudioLinesOff,
    Bot,
    Castle,
    Loader2,
@@ -15,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
 
 type Role = 'user' | 'assistant';
@@ -39,6 +42,8 @@ const ChatBot = () => {
    const [isLoading, setIsLoading] = useState(false);
    const [error, setError] = useState<string | null>(null);
 
+   const { playSend, playReceive, isMuted, toggleMuted } = useSoundEffects();
+
    const conversationIdRef = useRef<string>(crypto.randomUUID());
    const scrollRef = useRef<HTMLDivElement>(null);
    const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,6 +62,8 @@ const ChatBot = () => {
          setError(null);
          setInput('');
          if (textareaRef.current) textareaRef.current.style.height = 'auto';
+
+         playSend();
 
          setMessages((prev) => [
             ...prev,
@@ -92,6 +99,8 @@ const ChatBot = () => {
                   timestamp: new Date(),
                },
             ]);
+
+            playReceive();
          } catch (err) {
             setError(
                err instanceof Error ? err.message : 'Something went wrong'
@@ -101,7 +110,7 @@ const ChatBot = () => {
             textareaRef.current?.focus();
          }
       },
-      [isLoading]
+      [isLoading, playReceive, playSend]
    );
 
    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -159,15 +168,37 @@ const ChatBot = () => {
                </p>
             </div>
 
-            <Button
-               variant="outline"
-               size="sm"
-               onClick={resetConversation}
-               className="gap-1.5"
-            >
-               <Plus className="size-3.5" />
-               New chat
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+               <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleMuted}
+                  aria-label={
+                     isMuted ? 'Unmute sound effects' : 'Mute sound effects'
+                  }
+                  aria-pressed={isMuted}
+                  title={
+                     isMuted ? 'Unmute sound effects' : 'Mute sound effects'
+                  }
+                  className="size-7"
+               >
+                  {isMuted ? (
+                     <AudioLinesOff className="size-4" />
+                  ) : (
+                     <AudioLines className="size-4" />
+                  )}
+               </Button>
+
+               <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetConversation}
+                  className="gap-1.5"
+               >
+                  <Plus className="size-3.5" />
+                  New chat
+               </Button>
+            </div>
          </header>
 
          <div
