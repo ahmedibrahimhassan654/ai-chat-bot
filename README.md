@@ -401,6 +401,6 @@ MIT — free to use, modify, and learn from.
 ---
 
 <p align="center">
-  Built with ❤️ and ☕ by <strong>&lt;Your Name&gt;</strong><br/>
+  Built with ❤️ and ☕ by <strong>&lt;Ahmed Ibrahim&gt;</strong><br/>
   <em>If this project impressed you, let's talk — my inbox is open.</em>
 </p>
