@@ -7,10 +7,12 @@ const prisma = new PrismaClient({ adapter });
 
 export class SummaryRepository {
    async saveSummary(productId: number, content: string) {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
       return prisma.summary.upsert({
          where: { productId },
-         create: { productId, content },
-         update: { content },
+         create: { productId, content, expiresAt },
+         update: { content, expiresAt },
       });
    }
 }

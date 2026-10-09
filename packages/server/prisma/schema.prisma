@@ -38,11 +38,9 @@ model Review {
 model Summary {
   @@map("summaries")
   id          Int      @id @default(autoincrement())
-  productId   Int
+  productId   Int      @unique
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   content     String   @db.Text
   generatedAt DateTime @default(now())
-  expiresAt   DateTime
-
-  @@index([productId])
+  expiresAt   DateTime @default(dbgenerated("NOW() + INTERVAL 30 DAY"))
 }
