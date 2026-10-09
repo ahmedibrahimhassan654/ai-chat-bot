@@ -6,7 +6,14 @@ import summarizeReviewsTemplate from '../prompts/summarize-reviews.txt' with { t
 const REVIEWS_PLACEHOLDER = '{{reviews}}';
 
 export class ReviewService {
-   async summarizeReviews(productId: number): Promise<string> {
+   async summarizeReviews(productId: number, force = false): Promise<string> {
+      if (!force) {
+         const cached = await summaryRepository.getReviewSummary(productId);
+         if (cached) {
+            return cached.content;
+         }
+      }
+
       const reviews = await reviewRepository.getReviews(productId, 10);
 
       if (reviews.length === 0) {
@@ -24,7 +31,7 @@ export class ReviewService {
 
       const summary = await generateSummary(prompt);
 
-      await summaryRepository.saveSummary(productId, summary);
+      await summaryRepository.storeReviewSummary(productId, summary);
 
       return summary;
    }

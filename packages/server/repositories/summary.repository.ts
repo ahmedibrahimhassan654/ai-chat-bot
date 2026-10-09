@@ -6,7 +6,11 @@ const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 export class SummaryRepository {
-   async saveSummary(productId: number, content: string) {
+   async getReviewSummary(productId: number) {
+      return prisma.summary.findUnique({ where: { productId } });
+   }
+
+   async storeReviewSummary(productId: number, content: string) {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       return prisma.summary.upsert({

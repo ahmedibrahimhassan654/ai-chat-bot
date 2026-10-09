@@ -10,7 +10,8 @@ export class ReviewController {
          return;
       }
 
-      const summary = await reviewService.summarizeReviews(productId);
+      const force = req.query.force === 'true';
+      const summary = await reviewService.summarizeReviews(productId, force);
 
       res.json({ summary });
    }
