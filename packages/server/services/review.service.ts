@@ -1,4 +1,5 @@
 import { reviewRepository } from '../repositories/review.repository.ts';
+import { summaryRepository } from '../repositories/summary.repository.ts';
 import { generateSummary } from './llm.service.ts';
 import summarizeReviewsTemplate from '../prompts/summarize-reviews.txt' with { type: 'text' };
 
@@ -21,7 +22,11 @@ export class ReviewService {
          joinedReviews
       );
 
-      return generateSummary(prompt);
+      const summary = await generateSummary(prompt);
+
+      await summaryRepository.saveSummary(productId, summary);
+
+      return summary;
    }
 }
 
