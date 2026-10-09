@@ -6,6 +6,7 @@ import { GroqChatService } from './services/chat.service.ts';
 import { InMemoryConversationRepository } from './repositories/conversation.repository.ts';
 import { reviewRepository } from './repositories/review.repository.ts';
 import { buildSystemPrompt } from './prompts/index.ts';
+import { productRepository } from './repositories/product.repository.ts';
 
 export function createApiRouter(): Router {
    const router = Router();
@@ -22,6 +23,11 @@ export function createApiRouter(): Router {
 
    router.get('/message', (req: Request, res: Response) => {
       res.json({ message: 'Hello from the server' });
+   });
+
+   router.get('/products', async (_req: Request, res: Response) => {
+      const products = await productRepository.getAllProducts();
+      res.json(products);
    });
 
    router.get(

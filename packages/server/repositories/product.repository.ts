@@ -9,6 +9,10 @@ export class ProductRepository {
    async getProduct(productId: number) {
       return prisma.product.findUnique({ where: { id: productId } });
    }
+
+   async getAllProducts() {
+      return prisma.product.findMany({ orderBy: { id: 'asc' } });
+   }
 }
 
 export const productRepository = new ProductRepository();
