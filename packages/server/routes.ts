@@ -1,14 +1,9 @@
-import 'dotenv/config';
 import { Router, type Request, type Response } from 'express';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from './generated/prisma/client.ts';
 import { HttpChatController } from './controllers/chat.controller.ts';
 import { GroqChatService } from './services/chat.service.ts';
 import { InMemoryConversationRepository } from './repositories/conversation.repository.ts';
+import { getReviewsByProductId } from './repositories/review.repository.ts';
 import { buildSystemPrompt } from './prompts/index.ts';
-
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
-const prisma = new PrismaClient({ adapter });
 
 export function createApiRouter(): Router {
    const router = Router();
@@ -35,10 +30,7 @@ export function createApiRouter(): Router {
             return;
          }
 
-         const reviews = await prisma.review.findMany({
-            where: { productId },
-            orderBy: { createdAt: 'desc' },
-         });
+         const reviews = await getReviewsByProductId(productId);
 
          res.json(reviews);
       }
