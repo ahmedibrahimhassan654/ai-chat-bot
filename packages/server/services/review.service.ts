@@ -1,5 +1,8 @@
 import { reviewRepository } from '../repositories/review.repository.ts';
 import { generateSummary } from './llm.service.ts';
+import summarizeReviewsTemplate from '../prompts/summarize-reviews.txt' with { type: 'text' };
+
+const REVIEWS_PLACEHOLDER = '{{reviews}}';
 
 export class ReviewService {
    async summarizeReviews(productId: number): Promise<string> {
@@ -13,7 +16,12 @@ export class ReviewService {
          .map((review) => review.content)
          .join('\n\n');
 
-      return generateSummary(joinedReviews);
+      const prompt = summarizeReviewsTemplate.replaceAll(
+         REVIEWS_PLACEHOLDER,
+         joinedReviews
+      );
+
+      return generateSummary(prompt);
    }
 }
 

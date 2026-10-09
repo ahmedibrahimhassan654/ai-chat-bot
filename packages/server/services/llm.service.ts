@@ -1,16 +1,7 @@
 import OpenAI from 'openai';
 import { llmClient, LLM_MODEL } from './llm.client.ts';
 
-export async function generateSummary(reviewsText: string): Promise<string> {
-   const prompt = [
-      'Summarize the following customer reviews into a single concise paragraph.',
-      'Highlight the key pros, the key cons, and the overall sentiment.',
-      'Do not mention individual reviewers by name.',
-      '',
-      'Customer reviews:',
-      reviewsText,
-   ].join('\n');
-
+export async function generateSummary(prompt: string): Promise<string> {
    const response = await llmClient.chat.completions.create({
       model: LLM_MODEL,
       messages: [{ role: 'user', content: prompt }],

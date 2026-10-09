@@ -1,0 +1,6 @@
+Summarize the following customer reviews into a single concise paragraph.
+Highlight the key pros, the key cons, and the overall sentiment.
+Do not mention individual reviewers by name.
+
+Customer reviews:
+{{reviews}}
