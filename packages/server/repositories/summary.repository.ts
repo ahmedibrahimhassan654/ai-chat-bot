@@ -6,7 +6,7 @@ const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 export class SummaryRepository {
-   async getReviewSummary(productId: number) {
+   async getSummaryByProductId(productId: number) {
       return prisma.summary.findUnique({ where: { productId } });
    }
 

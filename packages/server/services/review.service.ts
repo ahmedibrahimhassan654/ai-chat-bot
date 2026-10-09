@@ -15,7 +15,8 @@ export class ReviewService {
       }
 
       if (!force) {
-         const cached = await summaryRepository.getReviewSummary(productId);
+         const cached =
+            await summaryRepository.getSummaryByProductId(productId);
          if (cached) {
             return cached.content;
          }

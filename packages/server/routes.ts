@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { HttpChatController } from './controllers/chat.controller.ts';
 import { ReviewController } from './controllers/review.controller.ts';
+import { SummaryController } from './controllers/summary.controller.ts';
 import { GroqChatService } from './services/chat.service.ts';
 import { InMemoryConversationRepository } from './repositories/conversation.repository.ts';
 import { reviewRepository } from './repositories/review.repository.ts';
@@ -17,6 +18,7 @@ export function createApiRouter(): Router {
    );
    const chatController = new HttpChatController(chatService);
    const reviewController = new ReviewController();
+   const summaryController = new SummaryController();
 
    router.get('/message', (req: Request, res: Response) => {
       res.json({ message: 'Hello from the server' });
@@ -36,6 +38,10 @@ export function createApiRouter(): Router {
 
          res.json(reviews);
       }
+   );
+
+   router.get('/products/:id/summary', (req: Request, res: Response) =>
+      summaryController.getSummary(req, res)
    );
 
    router.post(
